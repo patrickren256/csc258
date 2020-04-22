@@ -1,0 +1,141 @@
+module Shifter(input [9:0] SW, input [3:0] KEY, output[7:0] LEDR);
+	ShifterBackbone sb0(
+		.load_val(SW[7:0]),
+		.reset_n(SW[9]),
+		.load_n(KEY[1]),
+		.shift(KEY[2]),
+		.asr(KEY[3]),
+		.clk(KEY[0]),
+		.Q(LEDR[7:0]));
+endmodule
+
+module ShifterBackbone(input [7:0] load_val, input reset_n, input load_n, input shift, input asr, input clk, output [7:0] Q);
+	wire asr_in;
+	wire w7, w6, w5, w4, w3, w2, w1, w0;
+	ShitterHelper sh1(.asr(asr), .load_7(load_val[7]), asr_in);
+	BitShifter b7(
+		.load_val(load_val[7]),
+		.in(asr_in),
+		.shift(shift),
+		.load_n(load_n),
+		.reset_n(reset_n),
+		.clk(clk),
+		.out(w7)
+		);
+	BitShifter b6(
+		.load_val(load_val[6]),
+		.in(w7),
+		.shift(shift),
+		.load_n(load_n),
+		.reset_n(reset_n),
+		.clk(clk),
+		.out(w6)
+		);
+	BitShifter b5(
+		.load_val(load_val[5]),
+		.in(w6),
+		.shift(shift),
+		.load_n(load_n),
+		.reset_n(reset_n),
+		.clk(clk),
+		.out(w5)
+		);
+	BitShifter b4(
+		.load_val(load_val[4]),
+		.in(w5),
+		.shift(shift),
+		.load_n(load_n),
+		.reset_n(reset_n),
+		.clk(clk),
+		.out(w4)
+		);
+	BitShifter b3(
+		.load_val(load_val[3]),
+		.in(w4),
+		.shift(shift),
+		.load_n(load_n),
+		.reset_n(reset_n),
+		.clk(clk),
+		.out(w3)
+		);
+	BitShifter b2(
+		.load_val(load_val[2]),
+		.in(w3),
+		.shift(shift),
+		.load_n(load_n),
+		.reset_n(reset_n),
+		.clk(clk),
+		.out(w2)
+		);
+	BitShifter b1(
+		.load_val(load_val[1]),
+		.in(w2,
+		.shift(shift),
+		.load_n(load_n),
+		.reset_n(reset_n),
+		.clk(clk),
+		.out(w1)
+		);
+	BitShifter b0(
+		.load_val(load_val[0]),
+		.in(w1),
+		.shift(shift),
+		.load_n(load_n),
+		.reset_n(reset_n),
+		.clk(clk),
+		.out(w0)
+		);
+
+	assign Q[7] = w7;
+	assign Q[6] = w6;
+	assign Q[5] = w5;
+	assign Q[4] = w4;
+	assign Q[3] = w3;
+	assign Q[2] = w2;
+	assign Q[1] = w1;
+	assign Q[0] = w0;
+
+endmodule
+
+module ShitterHelper(input asr, input load_7, output reg load_out);
+	always @(*) 
+	begin
+		if(asr == 0)
+			load_out <= 0;
+		else
+			load_out <= load_7
+	end
+endmodule
+
+module BitShifter(load_val, in, shift, load_n, reset_n, clk, out);
+	input load_val, in, shift, load_n, reset_n, clk;
+	output out;
+	wire mux1, mux2;
+	mux2to1 m1(out, in, shift, mux1);
+	mux2to1 m2(load_val, mux1, load_n, mux2);
+
+	flipflop f0(clk, reset_n, mux2, out);
+endmodule
+
+// mux
+module mux2to1(x, y, s, m);
+    input x; //selected when s is 0
+    input y; //selected when s is 1
+    input s; //select signal
+    output m; //output
+  
+    assign m = s & y | ~s & x;
+    // OR
+    // assign m = s ? y : x;
+endmodule
+
+//flipflop
+module flipflop(input clk, input reset_n, input d, output reg q);
+	always @(posedge clk) 
+	begin
+		if (reset_n==0) 
+			q <= 0;
+		else
+			q <= d;
+	end
+endmodule

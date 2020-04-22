@@ -1,0 +1,156 @@
+module AluRegister(input [9:0] SW, input KEY, AluOutput [9:0] LEDR, output HEX0, output HEX4, output HEX5);
+	wire reset_n, [3:0] AInput;
+	assign reset_n = SW[9];
+	assign AInput = SW[4:0];
+
+	//screen output post register reset parse
+	reg [7:0] OutReg;
+
+
+	//INPUT BReg AS A REGISTER
+	reg [3:0] BReg;
+	assign BReg = OutReg[3:0];
+
+
+	//VARIOUS CASES TO ASSIGN TO
+	//CASE 0: A+1
+	wire [7:0] case0;
+	AdderArray adder1(.cin(1'b1), 
+		.in1(AInput), 
+		.in2(4'b0000), 
+		.cout(case0[4]),
+		.sout(case0[3:0]));
+	//CASE 1: A + B FULL ADDER
+	wire [7:0] case1;
+	AdderArray adder2(
+		.cin(0'b0),
+		.in1(AInput),
+		.in2(BReg),
+		.cout(case1[4]),
+		.sout(case1[3:0]));
+	//CASE2 A + B
+	wire [7:0] case2;
+	assign case2 = AInput + BReg;
+	//CASE3: {A|B,A^B}
+	wire [7:0] case3;
+	assign case3 = {AInput | BReg, AInput ^ BReg};
+	//i literally dont care anymore
+	wire [7:0] case4;
+	assign case4 = |{AInput, BReg};
+	wire [7:0] case5;
+	assign case5 = BReg << AInput;
+	wire [7:0] case6;
+	assign case6 = BReg >> AInput;
+	wire [7:0] case7;
+	assign case7 = AInput * BReg;
+
+
+	// ALU
+	reg AluOut;
+	always @(*)
+	begin
+		case (SW[7:5])
+			3'b000: AluOut = case0;
+			3'b001: AluOut = case1;
+			3'b010: AluOut = case2;
+			3'b011: AluOut = case3;
+			3'b100: AluOut = case4;
+			3'b101: AluOut = case5;
+			3'b110: AluOut = case6;
+			3'b111: AluOut = case7;
+			default: AluOut = 8'b00000000;
+		endcase
+	end
+
+	MyReg m0(
+		.clk(KEY),
+		.reset(SW[9]),
+		.d(AluOut),
+		.q(OutReg)
+		);
+
+	//ASSIGNMENT OF OUTPUTS
+	assign LEDR[7:0] = OutReg;
+
+	HexDecoder h0(.in1(AInput), HEX0);
+	HexDecoder h1(.in1(OutReg[3:0]), HEX4);
+	HexDecoder h2(.in1(OutReg[7:4]), HEX5);
+
+
+
+
+endmodule
+
+
+module MyReg(clk, reset_n, d, q);
+	input clk, reset_n, [7:0] d;
+	output reg [7:0] q;
+	// upon clock change, check if reset and do shit
+	always @(posedge clk) 
+		begin
+		if (reset_n == 1'b0)
+			q <= 0;
+		else
+			q <= d;
+	end
+endmodule
+
+// ADDERS
+module AdderArray(input cin, input [3:0] in1, input [3:0] in2,output cout, output [3:0] out);
+	wire c1, c2, c3;
+
+	FullAdder(
+		.a(in1[0]),
+		.b(in2[0]),
+		.cin(cin),
+		.cout(c1),
+		.sout(out[0]));
+	FullAdder(
+		.a(in1[1]),
+		.b(in2[1]),
+		.cin(c1),
+		.cout(c2),
+		.sout(out[1]));
+	FullAdder(
+		.a(in1[2]),
+		.b(in2[2]),
+		.cin(c2),
+		.cout(c3),
+		.sout(out[2]));
+	FullAdder(
+		.a(in1[3]),
+		.b(in2[3]),
+		.cin(c3),
+		.cout(cout),
+		.sout(out[3]));
+endmodule
+
+module FullAdder(a, b, cin, cout, sout);
+	input a, b, cin;
+	output cout, sout;
+	wire xor_ab;
+
+	assign xor_ab = a ^ b;
+	// outputs
+	assign sout = cin ^ xor_ab;
+	mux2to1(b, c, xor_ab, cout);
+endmodule
+
+module mux2to1(x, y, s, m);
+    input x; //selected when s is 0
+    input y; //selected when s is 1
+    input s; //select signal
+    output m; //output
+  
+    assign m = s & y | ~s & x;
+    // OR
+    // assign m = s ? y : x;
+
+endmodule
+
+//HEX DECODERS
+module HexDecoder(input [3:0] in1, output [6:0] hex);
+endmodule
+
+
+

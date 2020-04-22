@@ -1,0 +1,62 @@
+module FourBitAdder(SW[9:0], LEDR[4:0]);
+	input SW[9:0];
+	output LEDR[4:0];
+	AdderArray(
+		.cin(SW[9]), 
+		.in1(SW[7:4]),
+		.in2(SW[3:0]),
+		.cout(LEDR[4]),
+		.out(LEDR[3:0]));
+endmodule
+
+module AdderArray(input cin, input [3:0] in1, input [3:0] in2,output cout, output [3:0] out);
+	wire c1, c2, c3;
+
+	FullAdder(
+		.a(in1[0]),
+		.b(in2[0]),
+		.cin(cin),
+		.cout(c1),
+		.sout(out[0]));
+	FullAdder(
+		.a(in1[1]),
+		.b(in2[1]),
+		.cin(c1),
+		.cout(c2),
+		.sout(out[1]));
+	FullAdder(
+		.a(in1[2]),
+		.b(in2[2]),
+		.cin(c2),
+		.cout(c3),
+		.sout(out[2]));
+	FullAdder(
+		.a(in1[3]),
+		.b(in2[3]),
+		.cin(c3),
+		.cout(cout),
+		.sout(out[3]));
+endmodule
+
+module FullAdder(a, b, cin, cout, sout);
+	input a, b, cin;
+	output cout, sout;
+	wire xor_ab;
+
+	assign xor_ab = a ^ b;
+	// outputs
+	assign sout = cin ^ xor_ab;
+	mux2to1(b, c, xor_ab, cout);
+endmodule
+
+module mux2to1(x, y, s, m);
+    input x; //selected when s is 0
+    input y; //selected when s is 1
+    input s; //select signal
+    output m; //output
+  
+    assign m = s & y | ~s & x;
+    // OR
+    // assign m = s ? y : x;
+
+endmodule
